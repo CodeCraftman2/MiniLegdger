@@ -33,4 +33,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS http://localhost:${PORT:-3000}/health || exit 1
 
 # Apply pending migrations, then start. `migrate deploy` only runs committed migrations (never resets data).
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "node /repo/node_modules/prisma/build/index.js migrate deploy && node dist/server.js"]
