@@ -1,0 +1,31 @@
+name: Build Android APK
+
+# Manual: Actions tab -> "Build Android APK" -> Run workflow.
+# Needs an EXPO_TOKEN repo secret (expo.dev -> Account settings -> Access tokens).
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: Public API URL baked into the app
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - name: Build APK on EAS (free tier)
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_API_URL: ${{ inputs.api_url }}
+        run: eas build --platform android --profile preview --non-interactive

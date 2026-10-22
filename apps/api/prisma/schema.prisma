@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique // E.164, e.g. +919773331399
+  createdAt DateTime @default(now())
+  loans     Loan[]
+}
+
+model OtpRequest {
+  id        String   @id @default(cuid())
+  phone     String
+  codeHash  String // never store the raw OTP
+  expiresAt DateTime // now + 5 min
+  attempts  Int      @default(0) // lock after 5 wrong tries
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone, createdAt])
+}
+
+model Loan {
+  id             String    @id @default(cuid())
+  userId         String
+  friendName     String
+  amountPaise    Int // money as integer paise, never floats
+  dueDate        DateTime  @db.Date
+  repaidAt       DateTime?
+  idempotencyKey String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, dueDate])
+}
