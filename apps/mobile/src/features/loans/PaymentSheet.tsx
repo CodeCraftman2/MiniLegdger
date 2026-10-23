@@ -1,9 +1,10 @@
 import { formatRupees, parseRupeesToPaise, type CreatePaymentInput, type Loan } from "@miniledger/shared";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { colors, radius, spacing, typography } from "../../theme/tokens";
+import { ResizableSheet } from "../../components/ResizableSheet";
+import { colors, spacing, typography } from "../../theme/tokens";
 
 type Props = {
   loan: Loan | null;
@@ -12,7 +13,7 @@ type Props = {
   onSubmit: (loan: Loan, input: CreatePaymentInput) => void;
 };
 
-/** Bottom sheet for recording money received: any amount up to what is owed, or the whole balance in one tap. */
+/** Resizable bottom sheet for recording money received: any amount up to what is owed, or the whole balance in one tap. */
 export function PaymentSheet({ loan, offline, onClose, onSubmit }: Props) {
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string>();
@@ -35,73 +36,49 @@ export function PaymentSheet({ loan, offline, onClose, onSubmit }: Props) {
   }
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Dismiss" accessibilityRole="button" />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={styles.sheet} accessibilityViewIsModal>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Payment from {loan.friendName}</Text>
-          <Text style={styles.message}>
-            Still owed {formatRupees(owed, { alwaysShowPaise: true })}
-            {hasInterest
-              ? ` (${formatRupees(loan.balance.principalDuePaise, { alwaysShowPaise: true })} lent + ${formatRupees(
-                  loan.balance.interestDuePaise,
-                  { alwaysShowPaise: true },
-                )} interest). Interest is cleared first.`
-              : "."}
-          </Text>
+    <ResizableSheet title={`Payment from ${loan.friendName}`} onClose={onClose} initialRatio={0.5}>
+      <Text style={styles.message}>
+        Still owed {formatRupees(owed, { alwaysShowPaise: true })}
+        {hasInterest
+          ? ` (${formatRupees(loan.balance.principalDuePaise, { alwaysShowPaise: true })} lent + ${formatRupees(
+              loan.balance.interestDuePaise,
+              { alwaysShowPaise: true },
+            )} interest). Interest is cleared first.`
+          : "."}
+      </Text>
 
-          <Input
-            label="Amount received"
-            prefix="₹"
-            value={amount}
-            onChangeText={(v) => {
-              setAmount(v);
-              setError(undefined);
-            }}
-            placeholder="e.g. 100"
-            keyboardType="decimal-pad"
-            autoFocus
-            error={error}
-            returnKeyType="done"
-            onSubmitEditing={submitAmount}
-          />
-          {offline && <Text style={styles.hint}>You’re offline, so this will sync when you’re back online.</Text>}
+      <Input
+        label="Amount received"
+        prefix="₹"
+        value={amount}
+        onChangeText={(v) => {
+          setAmount(v);
+          setError(undefined);
+        }}
+        placeholder="e.g. 100"
+        keyboardType="decimal-pad"
+        autoFocus
+        error={error}
+        returnKeyType="done"
+        onSubmitEditing={submitAmount}
+      />
+      {offline && <Text style={styles.hint}>You’re offline, so this will sync when you’re back online.</Text>}
 
-          <View style={styles.actions}>
-            <Button
-              label={`Received in full`}
-              accessibilityLabel={`Mark everything, ${formatRupees(owed, { alwaysShowPaise: true })}, as received`}
-              variant="secondary"
-              onPress={() => onSubmit(loan, { full: true })}
-              style={{ flex: 1 }}
-            />
-            <Button label="Record payment" onPress={submitAmount} style={{ flex: 1 }} />
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      <View style={styles.actions}>
+        <Button
+          label={`Received in full`}
+          accessibilityLabel={`Mark everything, ${formatRupees(owed, { alwaysShowPaise: true })}, as received`}
+          variant="secondary"
+          onPress={() => onSubmit(loan, { full: true })}
+          style={{ flex: 1 }}
+        />
+        <Button label="Record payment" onPress={submitAmount} style={{ flex: 1 }} />
+      </View>
+    </ResizableSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: colors.overlay },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    padding: spacing.xl,
-    gap: spacing.md,
-  },
-  handle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    marginBottom: spacing.sm,
-  },
-  title: { ...typography.heading, color: colors.text },
   message: { ...typography.body, color: colors.textMuted },
   hint: { ...typography.caption, color: colors.textMuted },
   actions: { flexDirection: "row", gap: spacing.md, marginTop: spacing.sm },

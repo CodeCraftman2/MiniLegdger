@@ -116,8 +116,13 @@ export default function AddEntryScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          automaticallyAdjustKeyboardInsets
+        >
           <View style={styles.header}>
             <Text style={styles.title}>Add entry</Text>
             <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}>
@@ -216,7 +221,7 @@ export default function AddEntryScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.xl, gap: spacing.lg },
+  container: { padding: spacing.xl, paddingBottom: 120, gap: spacing.lg },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   title: { ...typography.title, color: colors.text },
   close: { ...typography.bodyStrong, color: colors.primary },

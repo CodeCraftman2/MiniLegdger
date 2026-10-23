@@ -8,13 +8,33 @@
     "userInterfaceStyle": "light",
     "android": {
       "package": "com.miniledger.app",
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/monochrome-icon.png",
+        "backgroundColor": "#0A63DB"
+      }
     },
     "plugins": [
       "expo-router",
       "expo-status-bar",
       "expo-secure-store",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "f96566b7-c996-4372-8c15-733fcac47e18"
+      }
+    },
+    "owner": "codecraftman02",
+    "icon": "./assets/icon.png",
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
   }
 }

@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const tokens = await api.verifyOtp(phone, otp);
     queryClient.clear();
     await tokenStore.save(tokens);
+    await tokenStore.setPhone(phone);
     setStatus("signedIn");
   }, []);
 

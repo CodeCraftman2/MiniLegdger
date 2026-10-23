@@ -1,5 +1,6 @@
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing, typography } from "../theme/tokens";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "./Button";
 
 type Props = {
@@ -13,10 +14,11 @@ type Props = {
 
 /** Bottom sheet confirmation built on Modal (no extra native dependency). */
 export function ConfirmSheet({ visible, title, message, confirmLabel, onConfirm, onCancel }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onCancel} accessibilityLabel="Dismiss" accessibilityRole="button" />
-      <View style={styles.sheet} accessibilityViewIsModal>
+      <View style={[styles.sheet, { paddingBottom: spacing.xl + insets.bottom }]} accessibilityViewIsModal>
         <View style={styles.handle} />
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.message}>{message}</Text>

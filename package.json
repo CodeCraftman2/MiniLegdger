@@ -1,6 +1,8 @@
 {
   "name": "miniledger",
   "private": true,
+  "author": "CodeCraftman2",
+  "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@9.15.4",
   "engines": { "node": ">=20" },
   "scripts": {

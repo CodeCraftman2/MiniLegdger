@@ -1,10 +1,11 @@
 import { buildUpiUri, formatRupees, isValidUpiId, type Loan } from "@miniledger/shared";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Share, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { QrCode } from "../../components/QrCode";
-import { loadUpiProfile, saveUpiProfile, type UpiProfile } from "../../lib/upi-store";
+import { ResizableSheet } from "../../components/ResizableSheet";
+import { deleteUpiProfile, loadUpiProfile, saveUpiProfile, type UpiProfile } from "../../lib/upi-store";
 import { colors, radius, spacing, typography } from "../../theme/tokens";
 
 type Props = {
@@ -17,11 +18,13 @@ type Props = {
 /**
  * Shows a UPI QR for what is owed right now, plus a shareable message. The money goes straight to the
  * lender's UPI ID, so the app can't confirm it arrived: the lender records it once it shows in their bank app.
+ * It opens part-way and can be dragged up to almost full screen.
  */
 export function RequestPaymentSheet({ loan, onClose, onPaid }: Props) {
   const [profile, setProfile] = useState<UpiProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [upiId, setUpiId] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string>();
@@ -35,6 +38,7 @@ export function RequestPaymentSheet({ loan, onClose, onPaid }: Props) {
       setUpiId(p?.upiId ?? "");
       setName(p?.payeeName ?? "");
       setEditing(p === null);
+      setConfirmRemove(false);
       setLoaded(true);
     });
     return () => {
@@ -59,6 +63,19 @@ export function RequestPaymentSheet({ loan, onClose, onPaid }: Props) {
     setError(undefined);
   }
 
+  async function remove() {
+    try {
+      await deleteUpiProfile();
+    } catch {
+      // If storage fails the form below still lets the user enter a new one.
+    }
+    setProfile(null);
+    setUpiId("");
+    setName("");
+    setConfirmRemove(false);
+    setEditing(true);
+  }
+
   const uri = profile
     ? buildUpiUri({ upiId: profile.upiId, payeeName: profile.payeeName, amountPaise: owed, note: "MiniLedger" })
     : null;
@@ -72,90 +89,78 @@ export function RequestPaymentSheet({ loan, onClose, onPaid }: Props) {
   }
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Dismiss" accessibilityRole="button" />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView style={styles.sheet} contentContainerStyle={{ gap: spacing.md }} keyboardShouldPersistTaps="handled">
-          <View style={styles.handle} />
-          <Text style={styles.title}>Ask {loan.friendName} to pay</Text>
+    <ResizableSheet title={`Ask ${loan.friendName} to pay`} onClose={onClose} initialRatio={0.62}>
+      {!loaded ? null : editing || !profile ? (
+        <>
+          <Text style={styles.message}>
+            Enter your UPI ID so {loan.friendName} can pay you directly. It is saved on this phone only.
+          </Text>
+          <Input
+            label="Your UPI ID"
+            value={upiId}
+            onChangeText={(v) => {
+              setUpiId(v);
+              setError(undefined);
+            }}
+            placeholder="name@bank"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            error={error}
+          />
+          <Input
+            label="Your name (shown when they pay)"
+            value={name}
+            onChangeText={setName}
+            placeholder="Optional"
+            autoCapitalize="words"
+            maxLength={40}
+          />
+          <Button label="Save and show QR" onPress={() => void save()} />
+        </>
+      ) : (
+        <>
+          <Text style={styles.amount}>{formatRupees(owed, { alwaysShowPaise: true })}</Text>
+          <Text style={styles.message}>
+            They scan this with any UPI app (GPay, PhonePe, Paytm…) and the amount is filled in.
+            {loan.balance.interestDuePaise > 0 ? " Interest grows daily, so make a fresh QR if they pay on a later day." : ""}
+          </Text>
+          <View style={styles.qrWrap}>{uri && <QrCode value={uri} size={248} />}</View>
+          <Text style={styles.upi} selectable>
+            {profile.upiId}
+          </Text>
 
-          {!loaded ? null : editing || !profile ? (
-            <>
-              <Text style={styles.message}>
-                Enter your UPI ID so {loan.friendName} can pay you directly. It is saved on this phone only.
-              </Text>
-              <Input
-                label="Your UPI ID"
-                value={upiId}
-                onChangeText={(v) => {
-                  setUpiId(v);
-                  setError(undefined);
-                }}
-                placeholder="name@bank"
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                error={error}
-              />
-              <Input
-                label="Your name (shown when they pay)"
-                value={name}
-                onChangeText={setName}
-                placeholder="Optional"
-                autoCapitalize="words"
-                maxLength={40}
-              />
-              <Button label="Save and show QR" onPress={() => void save()} />
-            </>
-          ) : (
-            <>
-              <Text style={styles.amount}>{formatRupees(owed, { alwaysShowPaise: true })}</Text>
-              <Text style={styles.message}>
-                They scan this with any UPI app (GPay, PhonePe, Paytm…) and the amount is filled in.
-                {loan.balance.interestDuePaise > 0 ? " Interest grows daily, so make a fresh QR if they pay on a later day." : ""}
-              </Text>
-              <View style={styles.qrWrap}>{uri && <QrCode value={uri} size={232} />}</View>
-              <Text style={styles.upi} selectable>
-                {profile.upiId}
-              </Text>
-
+          <View style={styles.actions}>
+            <Button label="Share message" variant="secondary" onPress={share} style={{ flex: 1 }} />
+            <Button label="They’ve paid" onPress={() => onPaid(loan)} style={{ flex: 1 }} />
+          </View>
+          <Text style={styles.hint}>
+            MiniLedger can’t see UPI payments. Once the money shows in your bank app, tap “They’ve paid” to record it.
+          </Text>
+          {confirmRemove ? (
+            <View style={{ gap: spacing.sm }}>
+              <Text style={styles.hint}>Remove {profile.upiId}? You can add a new UPI ID straight after.</Text>
               <View style={styles.actions}>
-                <Button label="Share message" variant="secondary" onPress={share} style={{ flex: 1 }} />
-                <Button label="They’ve paid" onPress={() => onPaid(loan)} style={{ flex: 1 }} />
+                <Button label="Keep it" variant="secondary" onPress={() => setConfirmRemove(false)} style={{ flex: 1 }} />
+                <Button label="Remove" variant="danger" onPress={() => void remove()} style={{ flex: 1 }} />
               </View>
-              <Text style={styles.hint}>
-                MiniLedger can’t see UPI payments. Once the money shows in your bank app, tap “They’ve paid” to record it.
-              </Text>
-              <Button label="Change my UPI ID" variant="ghost" onPress={() => setEditing(true)} />
-            </>
+            </View>
+          ) : (
+            <View style={styles.actions}>
+              <Button label="Edit UPI ID" variant="ghost" onPress={() => setEditing(true)} style={{ flex: 1 }} />
+              <Button label="Remove & add new" variant="ghost" onPress={() => setConfirmRemove(true)} style={{ flex: 1 }} />
+            </View>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+        </>
+      )}
+    </ResizableSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: colors.overlay },
-  sheet: {
-    maxHeight: "88%",
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    padding: spacing.xl,
-  },
-  handle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    marginBottom: spacing.sm,
-  },
-  title: { ...typography.heading, color: colors.text },
   amount: { ...typography.amount, color: colors.text, textAlign: "center" },
   message: { ...typography.body, color: colors.textMuted },
-  qrWrap: { alignSelf: "center", padding: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: "#FFFFFF" },
+  qrWrap: { alignSelf: "center", padding: spacing.md, borderRadius: radius.lg, backgroundColor: "#FFFFFF" },
   upi: { ...typography.bodyStrong, color: colors.text, textAlign: "center" },
   actions: { flexDirection: "row", gap: spacing.md },
   hint: { ...typography.caption, color: colors.textMuted, textAlign: "center" },

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../src/components/Button";
 import { ApiError, api } from "../../src/lib/api";
@@ -66,7 +66,7 @@ export default function OtpScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+      <KeyboardAvoidingView behavior="padding" style={styles.container}>
         <View style={{ gap: spacing.sm }}>
           <Text style={styles.title}>Enter the 6-digit code</Text>
           <Text style={styles.muted}>Sent to {phone?.replace("+91", "+91 ")}</Text>
@@ -122,7 +122,7 @@ export default function OtpScreen() {
         </View>
 
         {__DEV__ && <Text style={styles.hint}>Dev: the mock SMS provider prints the code in the API server log.</Text>}
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

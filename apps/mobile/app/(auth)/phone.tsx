@@ -1,7 +1,7 @@
 import { phoneSchema } from "@miniledger/shared";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../src/components/Button";
 import { Input } from "../../src/components/Input";
@@ -37,7 +37,7 @@ export default function PhoneScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
+      <KeyboardAvoidingView behavior="padding" style={styles.container}>
         <View style={{ gap: spacing.sm }}>
           <Text style={styles.brand}>MiniLedger</Text>
           <Text style={styles.title}>Enter your mobile number</Text>
