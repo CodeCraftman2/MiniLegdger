@@ -1,4 +1,11 @@
-import { createLoanSchema, listLoansQuerySchema, loanListSchema, loanSchema, summarySchema } from "@miniledger/shared";
+import {
+  createLoanSchema,
+  createPaymentSchema,
+  listLoansQuerySchema,
+  loanListSchema,
+  loanSchema,
+  summarySchema,
+} from "@miniledger/shared";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -33,7 +40,7 @@ export const loanRoutes: FastifyPluginAsync = async (fastify) => {
       schema: {
         tags: ["loans"],
         security,
-        summary: "Totals lent, repaid and overdue (computed in SQL)",
+        summary: "Totals lent, received, interest and overdue",
         response: { 200: summarySchema },
       },
     },
@@ -58,13 +65,44 @@ export const loanRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  app.get(
+    "/:id",
+    {
+      schema: {
+        tags: ["loans"],
+        security,
+        summary: "One loan with its payments and current balance",
+        params: z.object({ id: z.string().min(1) }),
+        response: { 200: loanSchema },
+      },
+    },
+    async (req) => service.get(req.user.sub, req.params.id),
+  );
+
+  app.post(
+    "/:id/payments",
+    {
+      schema: {
+        tags: ["loans"],
+        security,
+        summary:
+          "Record money received (partial or full); interest is cleared first. Send an Idempotency-Key header to make retries safe.",
+        params: z.object({ id: z.string().min(1) }),
+        headers: z.object({ "idempotency-key": z.string().min(1).max(128).optional() }),
+        body: createPaymentSchema,
+        response: { 200: loanSchema },
+      },
+    },
+    async (req) => service.addPayment(req.user.sub, req.params.id, req.body, req.headers["idempotency-key"]),
+  );
+
   app.patch(
     "/:id/repay",
     {
       schema: {
         tags: ["loans"],
         security,
-        summary: "Mark a loan as repaid (idempotent)",
+        summary: "Receive everything still owed (same as a full payment; idempotent)",
         params: z.object({ id: z.string().min(1) }),
         response: { 200: loanSchema },
       },

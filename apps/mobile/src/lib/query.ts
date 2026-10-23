@@ -1,4 +1,12 @@
-import { isOverdue, todayIST, type CreateLoanInput, type Loan } from "@miniledger/shared";
+import {
+  isOverdue,
+  loanBalance,
+  todayIST,
+  withPayment,
+  type CreateLoanInput,
+  type CreatePaymentInput,
+  type Loan,
+} from "@miniledger/shared";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { QueryClient, onlineManager } from "@tanstack/react-query";
@@ -8,7 +16,9 @@ import {
   findLoan,
   mapLoanLists,
   patchSummary,
+  replaceLoan,
   restore,
+  shiftSummary,
   snapshotAndCancel,
 } from "../features/loans/cache";
 import { ApiError, api } from "./api";
@@ -34,12 +44,13 @@ onlineManager.setEventListener((setOnline) =>
 );
 
 export type AddLoanVars = { input: CreateLoanInput; idempotencyKey: string };
-export type RepayLoanVars = { id: string };
+export type AddPaymentVars = { loanId: string; input: CreatePaymentInput; idempotencyKey: string };
 
 const retryNetworkOnly = (count: number, err: unknown) => err instanceof ApiError && err.isNetwork && count < 3;
 
 const invalidateLedger = () => {
   void queryClient.invalidateQueries({ queryKey: ["loans"] });
+  void queryClient.invalidateQueries({ queryKey: ["loan"] });
   void queryClient.invalidateQueries({ queryKey: ["summary"] });
 };
 
@@ -54,49 +65,61 @@ queryClient.setMutationDefaults(["addLoan"], {
   onMutate: async ({ input, idempotencyKey }: AddLoanVars) => {
     const snapshot = await snapshotAndCancel(queryClient);
     const today = todayIST();
+    const base = {
+      amountPaise: input.amountPaise,
+      lentOn: today,
+      interestRateBps: input.interestRateBps ?? 0,
+      interestPeriod: input.interestPeriod ?? ("MONTH" as const),
+      payments: [],
+      repaidAt: null,
+    };
     const temp: Loan = {
+      ...base,
       id: `${PENDING_PREFIX}${idempotencyKey}`,
       friendName: input.friendName,
-      amountPaise: input.amountPaise,
       dueDate: input.dueDate,
-      repaidAt: null,
       createdAt: new Date().toISOString(),
       overdue: isOverdue(input.dueDate, null, today),
       daysOverdue: 0,
+      balance: loanBalance(base, today),
     };
     mapLoanLists(queryClient, (items, status, page) => (status === "all" && page === 0 ? [temp, ...items] : items));
-    patchSummary(queryClient, (s) => ({ ...s, totalLentPaise: s.totalLentPaise + input.amountPaise }));
+    patchSummary(queryClient, (s) => ({
+      ...s,
+      totalLentPaise: s.totalLentPaise + input.amountPaise,
+      outstandingPaise: s.outstandingPaise + input.amountPaise,
+    }));
     return { snapshot };
   },
   onError: (_e, _v, ctx) => restore(queryClient, (ctx as { snapshot?: Parameters<typeof restore>[1] } | undefined)?.snapshot),
   onSettled: invalidateLedger,
 });
 
-queryClient.setMutationDefaults(["repayLoan"], {
-  mutationFn: ({ id }: RepayLoanVars) => api.repay(id),
+queryClient.setMutationDefaults(["addPayment"], {
+  mutationFn: ({ loanId, input, idempotencyKey }: AddPaymentVars) => api.addPayment(loanId, input, idempotencyKey),
   retry: retryNetworkOnly,
-  onMutate: async ({ id }: RepayLoanVars) => {
+  onMutate: async ({ loanId, input, idempotencyKey }: AddPaymentVars) => {
     const snapshot = await snapshotAndCancel(queryClient);
-    const loan = findLoan(queryClient, id);
-    const today = todayIST();
-    mapLoanLists(queryClient, (items, status) => {
-      if (status === "overdue") return items.filter((l) => l.id !== id);
-      return items.map((l) =>
-        l.id === id ? { ...l, repaidAt: new Date().toISOString(), overdue: false, daysOverdue: 0 } : l,
+    const before = findLoan(queryClient, loanId);
+    if (before && !before.repaidAt) {
+      const today = todayIST();
+      const amountPaise = input.full ? before.balance.owedPaise : Math.min(input.amountPaise ?? 0, before.balance.owedPaise);
+      const after = withPayment(
+        before,
+        {
+          id: `${PENDING_PREFIX}${idempotencyKey}`,
+          amountPaise,
+          paidOn: today,
+          note: input.note ?? null,
+          createdAt: new Date().toISOString(),
+        },
+        today,
       );
-    });
-    if (loan && !loan.repaidAt) {
-      const wasOverdue = isOverdue(loan.dueDate, null, today);
-      patchSummary(queryClient, (s) => ({
-        ...s,
-        totalRepaidPaise: s.totalRepaidPaise + loan.amountPaise,
-        overduePaise: wasOverdue ? s.overduePaise - loan.amountPaise : s.overduePaise,
-        overdueCount: wasOverdue ? s.overdueCount - 1 : s.overdueCount,
-      }));
+      replaceLoan(queryClient, after);
+      shiftSummary(queryClient, before, after);
     }
     return { snapshot };
   },
   onError: (_e, _v, ctx) => restore(queryClient, (ctx as { snapshot?: Parameters<typeof restore>[1] } | undefined)?.snapshot),
   onSettled: invalidateLedger,
 });
-

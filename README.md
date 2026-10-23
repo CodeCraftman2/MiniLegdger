@@ -1,6 +1,6 @@
 # MiniLedger
 
-Track money you've lent to friends. Android-first React Native app + a Fastify/Postgres API, in one pnpm monorepo.
+Track money you've lent to friends: part payments, optional simple interest, and a planner that tells you what rate to charge to earn a target amount. Android-first React Native app + a Fastify/Postgres API, in one pnpm monorepo.
 
 | | |
 |---|---|
@@ -61,7 +61,7 @@ Sign-in uses a **mock SMS provider**: when you tap "Send OTP", the 6-digit code 
 - **Overdue** = not repaid **and** `dueDate` is strictly before today in `Asia/Kolkata`. A loan due *today* is not overdue.
 - **Due dates are plain dates** (`YYYY-MM-DD`, a Postgres `DATE`), so a UTC conversion can never shift one by a day.
 - **One error shape everywhere:** `{ "error": { "code", "description", "field?" } }`, so the app can attach messages to form fields.
-- **Writes are retry-safe.** `POST /v1/loans` takes an `Idempotency-Key`; `PATCH /v1/loans/:id/repay` is naturally idempotent.
+- **Writes are retry-safe.** `POST /v1/loans` takes an `Idempotency-Key`; `POST /v1/loans/:id/payments` takes one too, so a retried payment is never recorded twice.
 
 ## Offline behaviour (mobile)
 
@@ -71,7 +71,7 @@ Sign-in uses a **mock SMS provider**: when you tap "Send OTP", the 6-digit code 
 
 ## Tests & CI
 
-API tests use Fastify's `app.inject()` against a real Postgres (no mocked database). They cover: summary math, the overdue boundary, OTP expiry and attempt lockout, repaying twice, one user not seeing another's loans, idempotent creates (including a concurrent race), and pagination.
+API tests use Fastify's `app.inject()` against a real Postgres (no mocked database). They cover: summary math, the overdue boundary, OTP expiry and attempt lockout, part payments (including two at once), interest accrual and interest-first allocation, repaying twice, one user not seeing another's loans, idempotent creates (including a concurrent race), and pagination.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push: install → lint → typecheck → Postgres service container → `prisma migrate deploy` → Vitest. `android-apk.yml` is a manual workflow that builds an APK on EAS.
 

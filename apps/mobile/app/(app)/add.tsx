@@ -11,6 +11,7 @@ import { z } from "zod";
 import { Button } from "../../src/components/Button";
 import { Input } from "../../src/components/Input";
 import { newIdempotencyKey, useAddLoan } from "../../src/features/loans/hooks";
+import { InterestPlanner, type InterestValue } from "../../src/features/loans/InterestPlanner";
 import { formatDueDate } from "../../src/features/loans/LoanRow";
 import { ApiError } from "../../src/lib/api";
 import { MIN_TOUCH, colors, radius, spacing, typography } from "../../src/theme/tokens";
@@ -44,14 +45,20 @@ export default function AddEntryScreen() {
   const add = useAddLoan();
   const [submitting, setSubmitting] = useState(false);
   const [iosPickerOpen, setIosPickerOpen] = useState(false);
+  const [interest, setInterest] = useState<InterestValue>(null);
+  const [interestIncomplete, setInterestIncomplete] = useState(false);
   // One key per form session: a double tap or a retry on a flaky network reuses it, so the server dedupes.
   const idempotencyKey = useRef(newIdempotencyKey()).current;
 
-  const { control, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
+  const { control, handleSubmit, setError, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { friendName: "", amount: "", dueDate: addDays(todayIST(), 7) },
     mode: "onTouched",
   });
+
+  const amountText = watch("amount");
+  const dueDateValue = watch("dueDate");
+  const amountPaise = parseRupeesToPaise(amountText);
 
   function openDatePicker(value: string, onChange: (v: string) => void) {
     const minimumDate = toLocalDate(todayIST());
@@ -69,11 +76,16 @@ export default function AddEntryScreen() {
 
   async function onSubmit(values: FormValues) {
     if (submitting) return;
+    if (interestIncomplete) {
+      setError("root", { message: "Finish the interest details, or switch interest off." });
+      return;
+    }
     const vars = {
       input: {
         friendName: values.friendName.trim(),
         amountPaise: parseRupeesToPaise(values.amount)!,
         dueDate: values.dueDate,
+        ...(interest && { interestRateBps: interest.rateBps, interestPeriod: interest.period }),
       },
       idempotencyKey,
     };
@@ -178,6 +190,15 @@ export default function AddEntryScreen() {
                 )}
               </View>
             )}
+          />
+
+          <InterestPlanner
+            principalPaise={amountPaise}
+            dueDate={dueDateValue}
+            onChange={(value, incomplete) => {
+              setInterest(value);
+              setInterestIncomplete(incomplete);
+            }}
           />
 
           {errors.root?.message && (

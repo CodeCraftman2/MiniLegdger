@@ -16,6 +16,7 @@ export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="add" options={{ presentation: "modal" }} />
+      <Stack.Screen name="loan/[id]" />
     </Stack>
   );
 }

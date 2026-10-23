@@ -5,6 +5,7 @@ import {
   summarySchema,
   tokenResponseSchema,
   type CreateLoanInput,
+  type CreatePaymentInput,
   type LoanStatus,
 } from "@miniledger/shared";
 import { z } from "zod";
@@ -129,5 +130,11 @@ export const api = {
       body: input,
       headers: { "idempotency-key": idempotencyKey },
     }),
-  repay: (id: string) => request(loanSchema, `/v1/loans/${encodeURIComponent(id)}/repay`, { method: "PATCH" }),
+  getLoan: (id: string) => request(loanSchema, `/v1/loans/${encodeURIComponent(id)}`),
+  addPayment: (id: string, input: CreatePaymentInput, idempotencyKey: string) =>
+    request(loanSchema, `/v1/loans/${encodeURIComponent(id)}/payments`, {
+      method: "POST",
+      body: input,
+      headers: { "idempotency-key": idempotencyKey },
+    }),
 };

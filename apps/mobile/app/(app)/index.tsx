@@ -1,16 +1,15 @@
-import type { Loan, LoanStatus } from "@miniledger/shared";
+import type { CreatePaymentInput, Loan, LoanStatus } from "@miniledger/shared";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ConfirmSheet } from "../../src/components/ConfirmSheet";
 import { EmptyState, ErrorState, LoanListSkeleton, OfflineBanner } from "../../src/components/States";
-import { useIsOnline, useLoans, useRepayLoan, useSummary } from "../../src/features/loans/hooks";
+import { newIdempotencyKey, useAddPayment, useIsOnline, useLoans, useSummary } from "../../src/features/loans/hooks";
 import { LoanRow } from "../../src/features/loans/LoanRow";
+import { PaymentSheet } from "../../src/features/loans/PaymentSheet";
 import { SummaryCard } from "../../src/features/loans/SummaryCard";
 import { ApiError } from "../../src/lib/api";
 import { useAuth } from "../../src/lib/auth";
-import { formatRupees } from "@miniledger/shared";
 import { MIN_TOUCH, colors, radius, spacing, typography } from "../../src/theme/tokens";
 
 const FILTERS: { value: LoanStatus; label: string }[] = [
@@ -25,30 +24,30 @@ export default function HomeScreen() {
   const online = useIsOnline();
 
   const [status, setStatus] = useState<LoanStatus>("all");
-  const [toRepay, setToRepay] = useState<Loan | null>(null);
-  const [repayError, setRepayError] = useState<string>();
+  const [toPay, setToPay] = useState<Loan | null>(null);
+  const [payError, setPayError] = useState<string>();
 
   const loans = useLoans(status);
   const summary = useSummary();
-  const repay = useRepayLoan();
+  const addPayment = useAddPayment();
 
   const items = loans.data ?? [];
   const showSkeleton = loans.isPending && !loans.data;
   const showError = loans.isError && !loans.data;
 
-  function confirmRepay() {
-    if (!toRepay) return;
-    setRepayError(undefined);
-    repay.mutate(
-      { id: toRepay.id },
+  function submitPayment(loan: Loan, input: CreatePaymentInput) {
+    setPayError(undefined);
+    // One key per tap: a retry after a dropped connection reuses it, so the server never records it twice.
+    addPayment.mutate(
+      { loanId: loan.id, input, idempotencyKey: newIdempotencyKey() },
       {
         onError: (e) =>
-          setRepayError(
-            e instanceof ApiError ? `Couldn’t mark as repaid: ${e.message}` : "Couldn’t mark as repaid. It was rolled back.",
+          setPayError(
+            e instanceof ApiError ? `Couldn’t record the payment: ${e.message}` : "Couldn’t record the payment. It was rolled back.",
           ),
       },
     );
-    setToRepay(null);
+    setToPay(null);
   }
 
   const header = (
@@ -70,9 +69,9 @@ export default function HomeScreen() {
           );
         })}
       </View>
-      {repayError && (
-        <Pressable onPress={() => setRepayError(undefined)} accessibilityRole="alert">
-          <Text style={styles.repayError}>{repayError} (tap to dismiss)</Text>
+      {payError && (
+        <Pressable onPress={() => setPayError(undefined)} accessibilityRole="alert">
+          <Text style={styles.repayError}>{payError} (tap to dismiss)</Text>
         </Pressable>
       )}
     </View>
@@ -94,7 +93,13 @@ export default function HomeScreen() {
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
         ListHeaderComponent={header}
-        renderItem={({ item }) => <LoanRow loan={item} onRepay={setToRepay} />}
+        renderItem={({ item }) => (
+          <LoanRow
+            loan={item}
+            onOpen={(l) => router.push({ pathname: "/loan/[id]", params: { id: l.id } })}
+            onPay={setToPay}
+          />
+        )}
         onEndReachedThreshold={0.4}
         onEndReached={() => loans.hasNextPage && !loans.isFetchingNextPage && loans.fetchNextPage()}
         refreshControl={
@@ -129,20 +134,7 @@ export default function HomeScreen() {
         <Text style={styles.fabText}>+</Text>
       </Pressable>
 
-      <ConfirmSheet
-        visible={toRepay !== null}
-        title="Mark as repaid?"
-        message={
-          toRepay
-            ? `${toRepay.friendName} has paid back ${formatRupees(toRepay.amountPaise)}. ${
-                online ? "" : "You’re offline, so this will sync when you’re back online."
-              }`
-            : ""
-        }
-        confirmLabel="Mark repaid"
-        onConfirm={confirmRepay}
-        onCancel={() => setToRepay(null)}
-      />
+      <PaymentSheet loan={toPay} offline={!online} onClose={() => setToPay(null)} onSubmit={submitPayment} />
     </SafeAreaView>
   );
 }

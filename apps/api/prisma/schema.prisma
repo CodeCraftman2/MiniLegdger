@@ -27,17 +27,40 @@ model OtpRequest {
 }
 
 model Loan {
-  id             String    @id @default(cuid())
-  userId         String
-  friendName     String
-  amountPaise    Int // money as integer paise, never floats
-  dueDate        DateTime  @db.Date
-  repaidAt       DateTime?
-  idempotencyKey String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  user           User      @relation(fields: [userId], references: [id])
+  id              String         @id @default(cuid())
+  userId          String
+  friendName      String
+  amountPaise     Int // money as integer paise, never floats
+  dueDate         DateTime       @db.Date
+  repaidAt        DateTime?
+  // Simple interest, hundredths of a percent per period (200 = 2%). 0 means interest-free.
+  interestRateBps Int            @default(0)
+  interestPeriod  InterestPeriod @default(MONTH)
+  idempotencyKey  String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id])
+  payments        Payment[]
 
   @@unique([userId, idempotencyKey])
   @@index([userId, dueDate])
+}
+
+enum InterestPeriod {
+  MONTH
+  YEAR
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  loanId         String
+  amountPaise    Int
+  paidOn         DateTime @db.Date
+  note           String?
+  idempotencyKey String?
+  createdAt      DateTime @default(now())
+  loan           Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, idempotencyKey])
+  @@index([loanId, paidOn])
 }

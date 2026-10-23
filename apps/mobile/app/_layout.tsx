@@ -10,8 +10,8 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <PersistQueryClientProvider
         client={queryClient}
-        persistOptions={{ persister, maxAge: PERSIST_MAX_AGE, buster: "v1" }}
-        // Cache is back from disk: send any add/repay actions that were queued while offline.
+        persistOptions={{ persister, maxAge: PERSIST_MAX_AGE, buster: "v2" }}
+        // Cache is back from disk: send any add-entry or payment actions that were queued while offline.
         onSuccess={() => {
           void queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
         }}

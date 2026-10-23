@@ -6,32 +6,39 @@ import { colors, radius, spacing, typography } from "../../theme/tokens";
 export function SummaryCard({ summary }: { summary: Summary | undefined }) {
   const lent = summary?.totalLentPaise ?? 0;
   const repaid = summary?.totalRepaidPaise ?? 0;
+  const owed = summary?.outstandingPaise ?? 0;
+  const interestEarned = summary?.interestEarnedPaise ?? 0;
+  const interestDue = summary?.interestDuePaise ?? 0;
   const overdue = summary?.overduePaise ?? 0;
   const pct = lent > 0 ? Math.min(100, Math.round((repaid / lent) * 100)) : 0;
 
   return (
     <Card style={{ gap: spacing.md }}>
       <View>
-        <Text style={styles.label}>Total lent</Text>
-        <Text style={styles.big}>{formatRupees(lent)}</Text>
+        <Text style={styles.label}>To receive</Text>
+        <Text style={styles.big}>{formatRupees(owed)}</Text>
+        <Text style={styles.caption}>
+          {formatRupees(lent)} lent in total{interestDue > 0 ? ` · ${formatRupees(interestDue)} of it is interest` : ""}
+        </Text>
       </View>
 
       <View
         accessible
         accessibilityRole="progressbar"
-        accessibilityLabel={`${pct} percent repaid`}
+        accessibilityLabel={`${pct} percent of the money lent has come back`}
         accessibilityValue={{ min: 0, max: 100, now: pct }}
       >
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${pct}%` }]} />
         </View>
-        <Text style={styles.caption}>{pct}% repaid</Text>
+        <Text style={styles.caption}>{pct}% of the money lent is back</Text>
       </View>
 
       <View style={styles.split}>
         <View style={styles.cell}>
-          <Text style={styles.label}>Repaid</Text>
-          <Text style={[styles.value, { color: colors.success }]}>{formatRupees(repaid)}</Text>
+          <Text style={styles.label}>Received</Text>
+          <Text style={[styles.value, { color: colors.success }]}>{formatRupees(repaid + interestEarned)}</Text>
+          {interestEarned > 0 && <Text style={styles.caption}>{formatRupees(interestEarned)} interest</Text>}
         </View>
         <View style={styles.cell}>
           <Text style={styles.label}>Overdue{summary && summary.overdueCount > 0 ? ` (${summary.overdueCount})` : ""}</Text>
