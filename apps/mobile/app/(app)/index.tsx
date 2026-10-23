@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Segmented } from "../../src/components/Segmented";
 import { EmptyState, ErrorState, LoanListSkeleton, OfflineBanner } from "../../src/components/States";
 import { newIdempotencyKey, useAddPayment, useIsOnline, useLoans, useSummary } from "../../src/features/loans/hooks";
 import { LoanRow } from "../../src/features/loans/LoanRow";
@@ -10,7 +11,7 @@ import { PaymentSheet } from "../../src/features/loans/PaymentSheet";
 import { SummaryCard } from "../../src/features/loans/SummaryCard";
 import { ApiError } from "../../src/lib/api";
 import { useAuth } from "../../src/lib/auth";
-import { MIN_TOUCH, colors, radius, spacing, typography } from "../../src/theme/tokens";
+import { MIN_TOUCH, colors, radius, shadow, spacing, typography } from "../../src/theme/tokens";
 
 const FILTERS: { value: LoanStatus; label: string }[] = [
   { value: "all", label: "All" },
@@ -53,22 +54,7 @@ export default function HomeScreen() {
   const header = (
     <View style={{ gap: spacing.lg, paddingBottom: spacing.sm }}>
       <SummaryCard summary={summary.data} />
-      <View style={styles.chips} accessibilityRole="tablist">
-        {FILTERS.map((f) => {
-          const selected = f.value === status;
-          return (
-            <Pressable
-              key={f.value}
-              onPress={() => setStatus(f.value)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              style={[styles.chip, selected && styles.chipSelected]}
-            >
-              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{f.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <Segmented options={FILTERS} value={status} onChange={setStatus} />
       {payError && (
         <Pressable onPress={() => setPayError(undefined)} accessibilityRole="alert">
           <Text style={styles.repayError}>{payError} (tap to dismiss)</Text>
@@ -81,7 +67,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       {!online && <OfflineBanner />}
       <View style={styles.topBar}>
-        <Text style={styles.title}>MiniLedger</Text>
+        <Text style={styles.title}>Ledger</Text>
         <Pressable onPress={signOut} accessibilityRole="button" hitSlop={8} style={styles.signOut}>
           <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
@@ -131,7 +117,8 @@ export default function HomeScreen() {
         accessibilityLabel="Add entry"
         style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}
       >
-        <Text style={styles.fabText}>+</Text>
+        <Text style={styles.fabPlus}>+</Text>
+        <Text style={styles.fabText}>New entry</Text>
       </Pressable>
 
       <PaymentSheet loan={toPay} offline={!online} onClose={() => setToPay(null)} onSubmit={submitPayment} />
@@ -145,38 +132,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
-  title: { ...typography.title, color: colors.text },
+  title: { ...typography.largeTitle, color: colors.text },
   signOut: { minHeight: MIN_TOUCH - 8, justifyContent: "center" },
   signOutText: { ...typography.bodyStrong, color: colors.primary },
   list: { padding: spacing.lg, paddingBottom: 120, flexGrow: 1 },
-  chips: { flexDirection: "row", gap: spacing.sm },
-  chip: {
-    minHeight: MIN_TOUCH - 8,
-    paddingHorizontal: spacing.lg,
-    justifyContent: "center",
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { ...typography.captionStrong, color: colors.text },
-  chipTextSelected: { color: colors.primaryText },
   repayError: { ...typography.caption, color: colors.danger },
   fab: {
     position: "absolute",
     right: spacing.xl,
     bottom: spacing.xl,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
+    minHeight: 54,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    ...shadow.raised,
   },
-  fabText: { color: colors.primaryText, fontSize: 32, lineHeight: 36, fontWeight: "500" },
+  fabPlus: { color: colors.primaryText, fontSize: 26, lineHeight: 28, fontWeight: "500" },
+  fabText: { ...typography.bodyStrong, color: colors.primaryText },
 });

@@ -50,7 +50,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
       <Text style={styles.emoji}>⚠️</Text>
       <Text style={styles.heading}>Couldn’t load your entries</Text>
       <Text style={styles.muted}>{message}</Text>
-      <Button label="Retry" onPress={onRetry} style={{ alignSelf: "stretch" }} />
+      <Button label="Retry" onPress={onRetry} style={styles.centeredButton} />
     </View>
   );
 }
@@ -67,7 +67,7 @@ export function EmptyState({ filtered, onAdd }: { filtered: boolean; onAdd: () =
           ? "No entries match this filter."
           : "Keep track of money you’ve lent to friends, and never forget who owes you."}
       </Text>
-      {!filtered && <Button label="Add your first entry" onPress={onAdd} style={{ alignSelf: "stretch" }} />}
+      {!filtered && <Button label="Add your first entry" onPress={onAdd} style={styles.centeredButton} />}
     </View>
   );
 }
@@ -78,17 +78,19 @@ const styles = StyleSheet.create({
   skeleton: { backgroundColor: colors.border, borderRadius: radius.sm },
   skeletonList: { gap: spacing.md },
   skeletonRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  center: { alignItems: "center", gap: spacing.md, padding: spacing.xl, paddingTop: spacing.xxl },
+  // flex: 1 lets the empty state use the space under the summary and sit in the middle of it.
+  center: { flex: 1, minHeight: 360, alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.xl },
+  centeredButton: { alignSelf: "center", minWidth: 240, marginTop: spacing.md },
   emoji: { fontSize: 40 },
   heading: { ...typography.heading, color: colors.text, textAlign: "center" },
-  muted: { ...typography.body, color: colors.textMuted, textAlign: "center" },
+  muted: { ...typography.body, color: colors.textMuted, textAlign: "center", maxWidth: 320 },
   illustration: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 112,
+    height: 112,
+    borderRadius: 28,
     backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  illustrationEmoji: { fontSize: 56 },
+  illustrationEmoji: { fontSize: 52 },
 });

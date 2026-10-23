@@ -10,9 +10,10 @@ import {
   type InterestPeriod,
 } from "@miniledger/shared";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { StyleSheet, Switch, Text, View } from "react-native";
 import { Input } from "../../components/Input";
-import { MIN_TOUCH, colors, radius, spacing, typography } from "../../theme/tokens";
+import { Segmented } from "../../components/Segmented";
+import { colors, radius, shadow, spacing, typography } from "../../theme/tokens";
 
 export type InterestValue = { rateBps: number; period: InterestPeriod } | null;
 
@@ -31,35 +32,6 @@ const parsePercentToBps = (input: string): number | null => {
   if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
   return Math.round(Number(cleaned) * 100);
 };
-
-function Chips<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <View style={styles.chips} accessibilityRole="tablist">
-      {options.map((o) => {
-        const selected = o.value === value;
-        return (
-          <Pressable
-            key={o.value}
-            onPress={() => onChange(o.value)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            style={[styles.chip, selected && styles.chipSelected]}
-          >
-            <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{o.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
 
 /**
  * Optional interest for a new loan. Either type the rate and see what it earns, or type what you
@@ -111,7 +83,7 @@ export function InterestPlanner({ principalPaise, dueDate, onChange }: Props) {
 
       {enabled && (
         <View style={{ gap: spacing.md }}>
-          <Chips
+          <Segmented
             options={[
               { value: "rate", label: "I know the rate" },
               { value: "earn", label: "I want to earn…" },
@@ -122,7 +94,7 @@ export function InterestPlanner({ principalPaise, dueDate, onChange }: Props) {
 
           <View style={{ gap: spacing.xs }}>
             <Text style={styles.label}>Rate is per</Text>
-            <Chips
+            <Segmented
               options={[
                 { value: "MONTH", label: "Month" },
                 { value: "YEAR", label: "Year" },
@@ -192,29 +164,15 @@ const styles = StyleSheet.create({
   box: {
     gap: spacing.md,
     padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
+    ...shadow.card,
   },
   headerRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   heading: { ...typography.bodyStrong, color: colors.text },
   muted: { ...typography.caption, color: colors.textMuted },
-  label: { ...typography.captionStrong, color: colors.text },
+  label: { ...typography.captionStrong, color: colors.textMuted, marginLeft: spacing.xs },
   hint: { ...typography.caption, color: colors.textMuted },
-  chips: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
-  chip: {
-    minHeight: MIN_TOUCH - 8,
-    paddingHorizontal: spacing.lg,
-    justifyContent: "center",
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { ...typography.captionStrong, color: colors.text },
-  chipTextSelected: { color: colors.primaryText },
   result: { gap: spacing.xs, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.successBg },
   resultTitle: { ...typography.bodyStrong, color: colors.success },
   resultLine: { ...typography.caption, color: colors.text },

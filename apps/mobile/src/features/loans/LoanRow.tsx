@@ -1,7 +1,7 @@
 import { formatRate, formatRupees, type Loan } from "@miniledger/shared";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Badge } from "../../components/Badge";
-import { MIN_TOUCH, colors, radius, spacing, typography } from "../../theme/tokens";
+import { MIN_TOUCH, colors, radius, shadow, spacing, typography } from "../../theme/tokens";
 import { isPendingSync } from "./cache";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -95,17 +95,14 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.border,
     padding: spacing.lg,
+    ...shadow.card,
   },
-  rowOverdue: { backgroundColor: colors.dangerBg, borderColor: colors.dangerBg, borderLeftColor: colors.dangerBorder },
+  rowOverdue: { backgroundColor: colors.dangerBg },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",

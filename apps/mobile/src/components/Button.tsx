@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from "react-native";
-import { MIN_TOUCH, colors, radius, spacing, typography } from "../theme/tokens";
+import { colors, radius, spacing, typography } from "../theme/tokens";
 
 type Props = {
   label: string;
@@ -23,8 +23,8 @@ export function Button({ label, onPress, variant = "primary", loading, disabled,
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: inactive && variant === "primary" ? colors.disabled : v.bg, borderColor: v.border },
-        pressed && { opacity: 0.85 },
+        { backgroundColor: inactive && variant === "primary" ? colors.disabled : v.bg },
+        pressed && { opacity: 0.75 },
         style,
       ]}
     >
@@ -33,19 +33,19 @@ export function Button({ label, onPress, variant = "primary", loading, disabled,
   );
 }
 
+// "Secondary" is the iOS tinted button: soft blue fill, blue text.
 const variants = {
-  primary: { bg: colors.primary, fg: colors.primaryText, border: "transparent" },
-  secondary: { bg: colors.surface, fg: colors.text, border: colors.border },
-  danger: { bg: colors.danger, fg: colors.primaryText, border: "transparent" },
-  ghost: { bg: "transparent", fg: colors.primary, border: "transparent" },
+  primary: { bg: colors.primary, fg: colors.primaryText },
+  secondary: { bg: colors.primarySoft, fg: colors.primary },
+  danger: { bg: colors.danger, fg: colors.primaryText },
+  ghost: { bg: "transparent", fg: colors.primary },
 } as const;
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: MIN_TOUCH,
-    paddingHorizontal: spacing.lg,
+    minHeight: 52,
+    paddingHorizontal: spacing.xl,
     borderRadius: radius.md,
-    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },

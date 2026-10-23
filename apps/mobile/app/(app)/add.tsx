@@ -14,7 +14,7 @@ import { newIdempotencyKey, useAddLoan } from "../../src/features/loans/hooks";
 import { InterestPlanner, type InterestValue } from "../../src/features/loans/InterestPlanner";
 import { formatDueDate } from "../../src/features/loans/LoanRow";
 import { ApiError } from "../../src/lib/api";
-import { MIN_TOUCH, colors, radius, spacing, typography } from "../../src/theme/tokens";
+import { colors, radius, spacing, typography } from "../../src/theme/tokens";
 
 // Reuses the exact field rules the API enforces; only the amount differs (typed in rupees here, sent as paise).
 const formSchema = z.object({
@@ -220,13 +220,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   title: { ...typography.title, color: colors.text },
   close: { ...typography.bodyStrong, color: colors.primary },
-  label: { ...typography.captionStrong, color: colors.text },
+  label: { ...typography.captionStrong, color: colors.textMuted, marginLeft: spacing.xs },
   dateField: {
-    minHeight: MIN_TOUCH,
+    minHeight: 52,
     justifyContent: "center",
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    borderWidth: 1.5,
+    borderColor: "transparent",
     borderRadius: radius.md,
     backgroundColor: colors.surface,
   },
