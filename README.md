@@ -25,6 +25,10 @@ It is built as an Android-first React Native app with its own API, all in one re
 | Android APK | _add your release link here_ |
 
 > **Cold starts:** on Render's free tier the API sleeps after about 15 minutes without traffic. The first request after that can take 30–60 seconds.
+----
+## Demo
+
+https://github.com/CodeCraftman2/MiniLegdger/blob/master/MiniLedger-demo.mp4
 
 ## Features
 
