@@ -28,7 +28,6 @@ It is built as an Android-first React Native app with its own API, all in one re
 ----
 ## Demo
 
-https://github.com/CodeCraftman2/MiniLegdger/blob/master/MiniLedger-demo.mp4
 https://github.com/user-attachments/assets/2f7a4f30-3d99-4f63-b1c4-7166fd8e1b27
 
 ## Features
